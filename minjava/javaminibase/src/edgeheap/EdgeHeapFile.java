@@ -1,10 +1,13 @@
 package edgeheap;
 import java.io.*;
+import java.util.HashSet;
+
 import diskmgr.*;
 import bufmgr.*;
 import global.*;
 import heap.DataPageInfo;
 import heap.Edge;
+import heap.FieldNumberOutOfBoundException;
 import heap.FileAlreadyDeletedException;
 import heap.HFBufMgrException;
 import heap.HFDiskMgrException;
@@ -934,7 +937,161 @@ throws InvalidSlotNumberException,
 			    }
 
 			  } // end of delete_file_entry
+			  
+			  
+			    public int getLabelCnt() throws InvalidSlotNumberException, InvalidTupleSizeException, HFDiskMgrException,
+	            HFBufMgrException, IOException, FieldNumberOutOfBoundException
+
+	    {
+			    	HashSet<String> label=new HashSet<String>();
+	        int answer = 0;
+	        PageId currentDirPageId = new PageId(_firstDirPageId.pid);
+
+	        PageId nextDirPageId = new PageId(0);
+
+	        EHFPage currentDirPage = new EHFPage();
+	        Page pageinbuffer = new Page();
+
+	        while (currentDirPageId.pid != INVALID_PAGE) {
+	            pinPage(currentDirPageId, currentDirPage, false);
+
+	            EID eid = new EID();
+	            Edge atuple;
+	            for (eid = currentDirPage.firstEdge(); eid != null; // rid==NULL
+	                // means no
+	                // more
+	                // record
+	                 eid = currentDirPage.nextEdge(eid)) {
+	                atuple = currentDirPage.getEdge(eid);
+	                String labelname=atuple.getStrFld(5);
+	                label.add(labelname);
+	                
+	                EdgeDataPageInfo dpinfo = new EdgeDataPageInfo(atuple);
+
+	                answer += dpinfo.recct;
+	            }
+
+	            // ASSERTIONS: no more record
+	            // - we have read all datapage records on
+	            // the current directory page.
+
+	            nextDirPageId = currentDirPage.getNextPage();
+	            unpinPage(currentDirPageId, false /* undirty */);
+	            currentDirPageId.pid = nextDirPageId.pid;
+	        }
+
+	        // ASSERTIONS:
+	        // - if error, exceptions
+	        // - if end of heapfile reached: currentDirPageId == INVALID_PAGE
+	        // - if not yet end of heapfile: currentDirPageId valid
+
+	        return label.size();
+	    } // end of getRecCnt
 
 
+			    public int getDestinationCnt() throws InvalidSlotNumberException, InvalidTupleSizeException, HFDiskMgrException,
+	            HFBufMgrException, IOException, FieldNumberOutOfBoundException
+
+	    {
+			    	
+			    	
+			    	HashSet<NID> destinations=new HashSet<NID>();
+	        int answer = 0;
+	        PageId currentDirPageId = new PageId(_firstDirPageId.pid);
+
+	        PageId nextDirPageId = new PageId(0);
+
+	        EHFPage currentDirPage = new EHFPage();
+	        Page pageinbuffer = new Page();
+
+	        while (currentDirPageId.pid != INVALID_PAGE) {
+	            pinPage(currentDirPageId, currentDirPage, false);
+
+	            EID eid = new EID();
+	            Edge atuple;
+	            for (eid = currentDirPage.firstEdge(); eid != null; // rid==NULL
+	                // means no
+	                // more
+	                // record
+	                 eid = currentDirPage.nextEdge(eid)) {
+	                atuple = currentDirPage.getEdge(eid);
+	                NID desti=atuple.getDest();
+	                destinations.add(desti);
+	                
+	                EdgeDataPageInfo dpinfo = new EdgeDataPageInfo(atuple);
+
+	                answer += dpinfo.recct;
+	            }
+
+	            // ASSERTIONS: no more record
+	            // - we have read all datapage records on
+	            // the current directory page.
+
+	            nextDirPageId = currentDirPage.getNextPage();
+	            unpinPage(currentDirPageId, false /* undirty */);
+	            currentDirPageId.pid = nextDirPageId.pid;
+	        }
+
+	        // ASSERTIONS:
+	        // - if error, exceptions
+	        // - if end of heapfile reached: currentDirPageId == INVALID_PAGE
+	        // - if not yet end of heapfile: currentDirPageId valid
+
+	        return destinations.size();
+	    } // end of getRecCnt
+
+			    
+			    public int getSourceCnt() throws InvalidSlotNumberException, InvalidTupleSizeException, HFDiskMgrException,
+	            HFBufMgrException, IOException, FieldNumberOutOfBoundException
+
+	    {
+			    	
+			    	
+			    	HashSet<NID> sources=new HashSet<NID>();
+	        int answer = 0;
+	        PageId currentDirPageId = new PageId(_firstDirPageId.pid);
+
+	        PageId nextDirPageId = new PageId(0);
+
+	        EHFPage currentDirPage = new EHFPage();
+	        Page pageinbuffer = new Page();
+
+	        while (currentDirPageId.pid != INVALID_PAGE) {
+	            pinPage(currentDirPageId, currentDirPage, false);
+
+	            EID eid = new EID();
+	            Edge atuple;
+	            for (eid = currentDirPage.firstEdge(); eid != null; // rid==NULL
+	                // means no
+	                // more
+	                // record
+	                 eid = currentDirPage.nextEdge(eid)) {
+	                atuple = currentDirPage.getEdge(eid);
+	                NID src=atuple.getSource();
+	                sources.add(src);
+	                
+	                EdgeDataPageInfo dpinfo = new EdgeDataPageInfo(atuple);
+
+	                answer += dpinfo.recct;
+	            }
+
+	            // ASSERTIONS: no more record
+	            // - we have read all datapage records on
+	            // the current directory page.
+
+	            nextDirPageId = currentDirPage.getNextPage();
+	            unpinPage(currentDirPageId, false /* undirty */);
+	            currentDirPageId.pid = nextDirPageId.pid;
+	        }
+
+	        // ASSERTIONS:
+	        // - if error, exceptions
+	        // - if end of heapfile reached: currentDirPageId == INVALID_PAGE
+	        // - if not yet end of heapfile: currentDirPageId valid
+
+	        return sources.size();
+	    } // end of getRecCnt
+
+			  
 			  
 			}// End of edge heap file 		  
