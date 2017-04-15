@@ -4,7 +4,7 @@ import java.io.*;
 import global.*;
 
 /**
- *  This clas will hold single select condition
+ *  This class will hold single select condition
  *  It is an element of linked list which is logically
  *  connected by OR operators.
  */
@@ -23,6 +23,7 @@ public class CondExpr {
   public AttrType     type1;
   public AttrType     type2;    
  
+  public double distance;
   /**
    *the left operand and right operand 
    */ 
@@ -44,6 +45,12 @@ public class CondExpr {
     
     operand1.integer = 0;
     operand2.integer = 0;
+    
+    
+    if(type1.attrType==AttrType.attrDesc && type2.attrType==AttrType.attrDesc)
+    {
+    	distance=9;
+    }
     
     next = null;
   }
