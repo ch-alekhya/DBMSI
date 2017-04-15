@@ -34,7 +34,7 @@ import global.*;
 */
 
 
-interface  Filetype {
+ interface  Filetype {
   int TEMP = 0;
   int ORDINARY = 1;
   

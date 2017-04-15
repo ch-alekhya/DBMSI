@@ -1,11 +1,22 @@
-package nodeheap;
-
+package edgeheap;
 import java.io.*;
-import heap.*;
-
 import diskmgr.*;
 import bufmgr.*;
 import global.*;
+import heap.DataPageInfo;
+import heap.Edge;
+import heap.FileAlreadyDeletedException;
+import heap.HFBufMgrException;
+import heap.HFDiskMgrException;
+import heap.HFException;
+import heap.HFPage;
+import heap.InvalidSlotNumberException;
+import heap.InvalidTupleSizeException;
+import heap.InvalidUpdateException;
+import heap.Scan;
+import heap.SpaceNotAvailableException;
+import heap.Tuple;
+
 
 
 interface  Filetype {
@@ -13,17 +24,17 @@ interface  Filetype {
 	  int ORDINARY = 1;
 	  
 	} 
-
-public class NodeHeapFile implements Filetype,  GlobalConst  {
-	
-	 PageId      _firstDirPageId;   // page number of header page
+public class EdgeHeapFile implements Filetype,  GlobalConst {
+	  
+	  
+	  PageId      _firstDirPageId;   // page number of header page
 	  int         _ftype;
 	  private     boolean     _file_deleted;
 	  private     String 	 _fileName;
 	  private static int tempfilecount = 0;
 	  
 	  
-	  private NHFPage _newDatapage(DataPageInfo dpinfop)
+	  private EHFPage _newDatapage(DataPageInfo dpinfop)
 			    throws HFException,
 				   HFBufMgrException,
 				   HFDiskMgrException,
@@ -38,23 +49,21 @@ public class NodeHeapFile implements Filetype,  GlobalConst  {
 			      
 			      // initialize internal values of the new page:
 			      
-			      NHFPage hfpage = new NHFPage();
-			      hfpage.init(pageId, apage);
+			      EHFPage ehfpage = new EHFPage();
+			      ehfpage.init(pageId, apage);
 			      
 			      dpinfop.pageId.pid = pageId.pid;
 			      dpinfop.recct = 0;
-			      dpinfop.availspace = hfpage.available_space();
+			      dpinfop.availspace = ehfpage.available_space();
 			      
-			      return hfpage;
+			      return ehfpage;
 			      
 			    } // end of _newDatapage
-	  
-	  
-	  
-	  private boolean  _findDataPage( NID rid,
-			  PageId dirPageId, NHFPage dirpage,
-			  PageId dataPageId, NHFPage datapage,
-			  NID rpDataPageRid) 
+	
+	  private boolean  _findDataPage( EID eid,
+			  PageId dirPageId, EHFPage dirpage,
+			  PageId dataPageId, EHFPage datapage,
+			  EID rpDataPageRid) 
 throws InvalidSlotNumberException, 
    InvalidTupleSizeException, 
    HFException,
@@ -64,28 +73,28 @@ throws InvalidSlotNumberException,
 {
   PageId currentDirPageId = new PageId(_firstDirPageId.pid);
   
-  NHFPage currentDirPage = new NHFPage();
-  NHFPage currentDataPage = new NHFPage();
-  NID currentDataPageRid = new NID();
+  EHFPage currentDirPage = new EHFPage();
+  EHFPage currentDataPage = new EHFPage();
+  EID currentDataPageRid = new EID();
   PageId nextDirPageId = new PageId();
   // datapageId is stored in dpinfo.pageId 
   
   
   pinPage(currentDirPageId, currentDirPage, false/*read disk*/);
   
-  Node atuple = new Node();
+  Edge atuple = new Edge();
   
   while (currentDirPageId.pid != INVALID_PAGE)
 {// Start While01
   // ASSERTIONS:
   //  currentDirPage, currentDirPageId valid and pinned and Locked.
   
-  for( currentDataPageRid = currentDirPage.firstNode();
+  for( currentDataPageRid = currentDirPage.firstEdge();
        currentDataPageRid != null;
-       currentDataPageRid = currentDirPage.nextNode(currentDataPageRid))
+       currentDataPageRid = currentDirPage.nextEdge(currentDataPageRid))
     {
       try{
-	atuple = currentDirPage.getNode(currentDataPageRid);
+	atuple = currentDirPage.getEdge(currentDataPageRid);
       }
       catch (InvalidSlotNumberException e)// check error! return false(done) 
 	{
@@ -112,9 +121,9 @@ throws InvalidSlotNumberException,
       // - currentDataPage, currentDataPageRid, dpinfo valid
       // - currentDataPage pinned
       
-      if(dpinfo.pageId.pid==rid.pageNo.pid)
+      if(dpinfo.pageId.pid==eid.pageNo.pid)
 	{
-	  atuple = currentDataPage.returnNode(rid);
+	  atuple = currentDataPage.returnEdge(eid);
 	  // found user's record on the current datapage which itself
 	  // is indexed on the current dirpage.  Return both of these.
 	  
@@ -148,7 +157,7 @@ throws InvalidSlotNumberException,
     unpinPage(currentDirPageId, false /*undirty*/);
   }
   catch(Exception e) {
-    throw new HFException (e, "heapfile,_find,unpinpage failed");
+    throw new HFException (e, "Edgeheapfile,_find,unpinpage failed");
   }
   
   currentDirPageId.pid = nextDirPageId.pid;
@@ -168,10 +177,11 @@ throws InvalidSlotNumberException,
   return false;   
   
   
-} // end of _findDatapage		 
+} // end of _findDatapage	
 	  
 	  
-	  public  NodeHeapFile(String name) 
+	  
+	  public  EdgeHeapFile(String name) 
 			    throws HFException, 
 				   HFBufMgrException,
 				   HFDiskMgrException,
@@ -186,7 +196,7 @@ throws InvalidSlotNumberException,
 				{
 				  // If the name is NULL, allocate a temporary name
 				  // and no logging is required.
-				  _fileName = "tempHeapFile";
+				  _fileName = "tempEdgeHeapFile";
 				  String useId = new String("user.name");
 				  String userAccName;
 				  userAccName = System.getProperty(useId);
@@ -229,7 +239,7 @@ throws InvalidSlotNumberException,
 				  add_file_entry(_fileName, _firstDirPageId);
 				  // check error(new exception: Could not add file entry
 				  
-				  NHFPage firstDirPage = new NHFPage();
+				  EHFPage firstDirPage = new EHFPage();
 				  firstDirPage.init(_firstDirPageId, apage);
 				  PageId pageId = new PageId(INVALID_PAGE);
 				  
@@ -247,11 +257,10 @@ throws InvalidSlotNumberException,
 			      //  - _fileName valid
 			      //  - no datapage pinned yet    
 			      
-			    } // end of constructor 
-			  
-
+			    } // end of constructir
 	  
-	  public int getNodeCnt() 
+	  
+	  public int getEdgeCnt() 
 			    throws InvalidSlotNumberException, 
 				   InvalidTupleSizeException, 
 				   HFDiskMgrException,
@@ -264,20 +273,20 @@ throws InvalidSlotNumberException,
 			      
 			      PageId nextDirPageId = new PageId(0);
 			      
-			      NHFPage currentDirPage = new NHFPage();
+			      EHFPage currentDirPage = new EHFPage();
 			      Page pageinbuffer = new Page();
 			      
 			      while(currentDirPageId.pid != INVALID_PAGE)
 				{
 				   pinPage(currentDirPageId, currentDirPage, false);
 				   
-				   NID nid = new NID();
-				   Node atuple;
-				   for (nid = currentDirPage.firstNode();
-				        nid != null;	// rid==NULL means no more record
-				        nid = currentDirPage.nextNode(nid))
+				   EID eid = new EID();
+				   Edge atuple;
+				   for (eid = currentDirPage.firstEdge();
+				        eid != null;	// rid==NULL means no more record
+				        eid = currentDirPage.nextEdge(eid))
 				     {
-				       atuple = currentDirPage.getNode(nid);
+				       atuple = currentDirPage.getEdge(eid);
 				       DataPageInfo dpinfo = new DataPageInfo(atuple);
 				       
 				       answer += dpinfo.recct;
@@ -301,10 +310,9 @@ throws InvalidSlotNumberException,
 			      return answer;
 			    } // end of getRecCnt
 			  
-	
 	  
 	  
-	  public NID insertNode(byte[] recPtr) 
+	  public EID insertEdge(byte[] recPtr) 
 			    throws InvalidSlotNumberException,  
 				   InvalidTupleSizeException,
 				   SpaceNotAvailableException,
@@ -316,29 +324,29 @@ throws InvalidSlotNumberException,
 			      int dpinfoLen = 0;	
 			      int recLen = recPtr.length;
 			      boolean found;
-			      NID currentDataPageRid = new NID();
+			      EID currentDataPageRid = new EID();
 			      Page pageinbuffer = new Page();
-			      NHFPage currentDirPage = new NHFPage();
-			      NHFPage currentDataPage = new NHFPage();
+			      EHFPage currentDirPage = new EHFPage();
+			      EHFPage currentDataPage = new EHFPage();
 			      
-			      NHFPage nextDirPage = new NHFPage(); 
+			      EHFPage nextDirPage = new EHFPage(); 
 			      PageId currentDirPageId = new PageId(_firstDirPageId.pid);
 			      PageId nextDirPageId = new PageId();  // OK
 			      
 			      pinPage(currentDirPageId, currentDirPage, false/*Rdisk*/);
 			      
 			      found = false;
-			      Node atuple;
+			      Edge atuple;
 			      DataPageInfo dpinfo = new DataPageInfo();
 			      while (found == false)
 				{ //Start While01
 				  // look for suitable dpinfo-struct
-				  for (currentDataPageRid = currentDirPage.firstNode();
+				  for (currentDataPageRid = currentDirPage.firstEdge();
 				       currentDataPageRid != null;
 				       currentDataPageRid = 
-					 currentDirPage.nextNode(currentDataPageRid))
+					 currentDirPage.nextEdge(currentDataPageRid))
 				    {
-				      atuple = currentDirPage.getNode(currentDataPageRid);
+				      atuple = currentDirPage.getEdge(currentDataPageRid);
 				      
 				      dpinfo = new DataPageInfo(atuple);
 				      
@@ -396,12 +404,12 @@ throws InvalidSlotNumberException,
 					  
 					  
 					  
-					  atuple = (Node) dpinfo.convertToTuple();
+					  atuple = (Edge) dpinfo.convertToTuple();
 					  
-					  byte [] tmpData = atuple.getTupleByteArray();
-					  currentDataPageRid = (NID) currentDirPage.insertNode(tmpData);
+					  byte [] tmpData = atuple.getEdgeByteArray();
+					  currentDataPageRid = currentDirPage.insertEdge(tmpData);
 					  
-					  NID tmprid = currentDirPage.firstNode();
+					  EID tmprid = currentDirPage.firstEdge();
 					  
 					  
 					  // need catch error here!
@@ -465,7 +473,7 @@ throws InvalidSlotNumberException,
 					      unpinPage(currentDirPageId, true/*dirty*/);
 					      
 					      currentDirPageId.pid = nextDirPageId.pid;
-					      currentDirPage = new NHFPage(nextDirPage);
+					      currentDirPage = new EHFPage(nextDirPage);
 					      
 					      // remark that MINIBASE_BM->newPage already
 					      // pinned the new directory page!
@@ -513,8 +521,8 @@ throws InvalidSlotNumberException,
 				throw new HFException(null, "can't find Data page");
 			      
 			      
-			      NID nid;
-			      nid = (NID) currentDataPage.insertNode(recPtr);
+			      EID eid;
+			      eid = currentDataPage.insertEdge(recPtr);
 			      
 			      dpinfo.recct++;
 			      dpinfo.availspace = currentDataPage.available_space();
@@ -523,7 +531,7 @@ throws InvalidSlotNumberException,
 			      unpinPage(dpinfo.pageId, true /* = DIRTY */);
 			      
 			      // DataPage is now released
-			      atuple = currentDirPage.returnNode(currentDataPageRid);
+			      atuple = currentDirPage.returnEdge(currentDataPageRid);
 			      DataPageInfo dpinfo_ondirpage = new DataPageInfo(atuple);
 			      
 			      
@@ -536,12 +544,12 @@ throws InvalidSlotNumberException,
 			      unpinPage(currentDirPageId, true /* = DIRTY */);
 			      
 			      
-			      return nid;
+			      return eid;
 			      
 			    }
 	  
 	  
-	  public boolean deleteNode(NID nid)  
+	  public boolean deleteEdge(EID eid)  
 			    throws InvalidSlotNumberException, 
 				   InvalidTupleSizeException, 
 				   HFException, 
@@ -551,13 +559,13 @@ throws InvalidSlotNumberException,
 			  
 			    {
 			      boolean status;
-			      NHFPage currentDirPage = new NHFPage();
+			      EHFPage currentDirPage = new EHFPage();
 			      PageId currentDirPageId = new PageId();
-			      NHFPage currentDataPage = new NHFPage();
+			      EHFPage currentDataPage = new EHFPage();
 			      PageId currentDataPageId = new PageId();
-			      NID currentDataPageRid = new NID();
+			      EID currentDataPageRid = new EID();
 			      
-			      status = _findDataPage(nid,
+			      status = _findDataPage(eid,
 						     currentDirPageId, currentDirPage, 
 						     currentDataPageId, currentDataPage,
 						     currentDataPageRid);
@@ -569,13 +577,13 @@ throws InvalidSlotNumberException,
 			      // - currentDataPage, currentDataPageid valid and pinned
 			      
 			      // get datapageinfo from the current directory page:
-			      Node atuple;	
+			      Edge atuple;	
 			      
-			      atuple = currentDirPage.returnNode(currentDataPageRid);
+			      atuple = currentDirPage.returnEdge(currentDataPageRid);
 			      DataPageInfo pdpinfo = new DataPageInfo(atuple);
 			      
 			      // delete the record on the datapage
-			      currentDataPage.deleteNode(nid);
+			      currentDataPage.deleteEdge(eid);
 			      
 			      pdpinfo.recct--;
 			      pdpinfo.flushToTuple();	//Write to the buffer pool
@@ -608,7 +616,7 @@ throws InvalidSlotNumberException,
 				  // delete corresponding DataPageInfo-entry on the directory page:
 				  // currentDataPageRid points to datapage (from for loop above)
 				  
-				  currentDirPage.deleteNode(currentDataPageRid);
+				  currentDirPage.deleteEdge(currentDataPageRid);
 				  
 				  
 				  // ASSERTIONS:
@@ -617,7 +625,7 @@ throws InvalidSlotNumberException,
 				  
 				  // now check whether the directory page is empty:
 				  
-				  currentDataPageRid = currentDirPage.firstNode();
+				  currentDataPageRid = currentDirPage.firstEdge();
 				  
 				  // st == OK: we still found a datapageinfo record on this directory page
 				  PageId pageId;
@@ -629,7 +637,7 @@ throws InvalidSlotNumberException,
 				      
 				      // point previous page around deleted page:
 				      
-				      NHFPage prevDirPage = new NHFPage();
+				      EHFPage prevDirPage = new EHFPage();
 				      pinPage(pageId, prevDirPage, false);
 
 				      pageId = currentDirPage.getNextPage();
@@ -642,7 +650,7 @@ throws InvalidSlotNumberException,
 				      pageId = currentDirPage.getNextPage();
 				      if(pageId.pid != INVALID_PAGE)
 					{
-					  NHFPage nextDirPage = new NHFPage();
+					  EHFPage nextDirPage = new EHFPage();
 					  pageId = currentDirPage.getNextPage();
 					  pinPage(pageId, nextDirPage, false);
 					  
@@ -674,8 +682,9 @@ throws InvalidSlotNumberException,
 				}
 			      return true;
 			    }
-			  
-	  public boolean updateNode(NID nid, Node newtuple) 
+		
+	  
+	  public boolean updateEdge(EID eid, Edge newtuple) 
 			    throws InvalidSlotNumberException, 
 				   InvalidUpdateException, 
 				   InvalidTupleSizeException,
@@ -685,20 +694,20 @@ throws InvalidSlotNumberException,
 				   Exception
 			    {
 			      boolean status;
-			      NHFPage dirPage = new NHFPage();
+			      EHFPage dirPage = new EHFPage();
 			      PageId currentDirPageId = new PageId();
-			      NHFPage dataPage = new NHFPage();
+			      EHFPage dataPage = new EHFPage();
 			      PageId currentDataPageId = new PageId();
-			      NID currentDataPageRid = new NID();
+			      EID currentDataPageRid = new EID();
 			      
-			      status = _findDataPage(nid,
+			      status = _findDataPage(eid,
 						     currentDirPageId, dirPage, 
 						     currentDataPageId, dataPage,
 						     currentDataPageRid);
 			      
 			      if(status != true) return status;	// record not found
-			      Node atuple = new Node();
-			      atuple = dataPage.returnNode(nid);
+			      Edge atuple = new Edge();
+			      atuple = dataPage.returnEdge(eid);
 			      
 			      // Assume update a record with a record whose length is equal to
 			      // the original record
@@ -713,7 +722,7 @@ throws InvalidSlotNumberException,
 				}
 
 			      // new copy of this record fits in old space;
-			      atuple.nodeCopy(newtuple);
+			      atuple.edgeCopy(newtuple);
 			      unpinPage(currentDataPageId, true /* = DIRTY */);
 			      
 			      unpinPage(currentDirPageId, false /*undirty*/);
@@ -721,9 +730,8 @@ throws InvalidSlotNumberException,
 			      
 			      return true;
 			    }
-		
-	  
-	  public  Node getNode(NID nid) 
+			  
+	  public  Edge getEdge(EID eid) 
 			    throws InvalidSlotNumberException, 
 				   InvalidTupleSizeException, 
 				   HFException, 
@@ -732,21 +740,21 @@ throws InvalidSlotNumberException,
 				   Exception
 			    {
 			      boolean status;
-			      NHFPage dirPage = new NHFPage();
+			      EHFPage dirPage = new EHFPage();
 			      PageId currentDirPageId = new PageId();
-			      NHFPage dataPage = new NHFPage();
+			      EHFPage dataPage = new EHFPage();
 			      PageId currentDataPageId = new PageId();
-			      NID currentDataPageRid = new NID();
+			      EID currentDataPageRid = new EID();
 			      
-			      status = _findDataPage(nid,
+			      status = _findDataPage(eid,
 						     currentDirPageId, dirPage, 
 						     currentDataPageId, dataPage,
 						     currentDataPageRid);
 			      
 			      if(status != true) return null; // record not found 
 			      
-			      Node atuple = new Node();
-			      atuple = dataPage.getNode(nid);
+			      Edge atuple = new Edge();
+			      atuple = dataPage.getEdge(eid);
 			      
 			      /*
 			       * getRecord has copied the contents of rid into recPtr and fixed up
@@ -763,16 +771,14 @@ throws InvalidSlotNumberException,
 			      
 			    }
 			  
-	  public NScan openScan() 
+			  		  
+	  public EScan openScan() 
 			    throws InvalidTupleSizeException,
 				   IOException
 			    {
-			      NScan newscan = new NScan(this);
+			      EScan newscan = new EScan(this);
 			      return newscan;
-			    }
-			  		  
-	
-	  
+			    }	
 	  
 	  public void deleteFile()  
 			    throws InvalidSlotNumberException, 
@@ -795,20 +801,20 @@ throws InvalidSlotNumberException,
 			      PageId nextDirPageId = new PageId();
 			      nextDirPageId.pid = 0;
 			      Page pageinbuffer = new Page();
-			      NHFPage currentDirPage =  new NHFPage();
-			      Node atuple;
+			      EHFPage currentDirPage =  new EHFPage();
+			      Edge atuple;
 			      
 			      pinPage(currentDirPageId, currentDirPage, false);
 			      //currentDirPage.openHFpage(pageinbuffer);
 			      
-			      NID nid = new NID();
+			      EID eid = new EID();
 			      while(currentDirPageId.pid != INVALID_PAGE)
 				{      
-				  for(nid = currentDirPage.firstNode();
-				      nid != null;
-				      nid = currentDirPage.nextNode(nid))
+				  for(eid = currentDirPage.firstEdge();
+				      eid != null;
+				      eid = currentDirPage.nextEdge(eid))
 				    {
-				      atuple = currentDirPage.getNode(nid);
+				      atuple = currentDirPage.getEdge(eid);
 				      DataPageInfo dpinfo = new DataPageInfo( atuple);
 				      //int dpinfoLen = arecord.length;
 				      
@@ -833,11 +839,7 @@ throws InvalidSlotNumberException,
 			      delete_file_entry( _fileName );
 			    }
 			  
-			  /**
-			   * short cut to access the pinPage function in bufmgr package.
-			   * @see bufmgr.pinPage
-			   */
-			  private void pinPage(PageId pageno, Page page, boolean emptyPage)
+	  private void pinPage(PageId pageno, Page page, boolean emptyPage)
 			    throws HFBufMgrException {
 			    
 			    try {
@@ -847,90 +849,92 @@ throws InvalidSlotNumberException,
 			      throw new HFBufMgrException(e,"Heapfile.java: pinPage() failed");
 			    }
 			    
-	
-			} // end of pinPage
-			  
-			  
+			  } // end of pinPage
+
+			  /**
+			   * short cut to access the unpinPage function in bufmgr package.
+			   * @see bufmgr.unpinPage
+			   */
 			  private void unpinPage(PageId pageno, boolean dirty)
-					    throws HFBufMgrException {
+			    throws HFBufMgrException {
 
-					    try {
-					      SystemDefs.JavabaseBM.unpinPage(pageno, dirty);
-					    }
-					    catch (Exception e) {
-					      throw new HFBufMgrException(e,"Heapfile.java: unpinPage() failed");
-					    }
+			    try {
+			      SystemDefs.JavabaseBM.unpinPage(pageno, dirty);
+			    }
+			    catch (Exception e) {
+			      throw new HFBufMgrException(e,"Heapfile.java: unpinPage() failed");
+			    }
 
-					  } // end of unpinPage
+			  } // end of unpinPage
 
-					  private void freePage(PageId pageno)
-					    throws HFBufMgrException {
+			  private void freePage(PageId pageno)
+			    throws HFBufMgrException {
 
-					    try {
-					      SystemDefs.JavabaseBM.freePage(pageno);
-					    }
-					    catch (Exception e) {
-					      throw new HFBufMgrException(e,"Heapfile.java: freePage() failed");
-					    }
+			    try {
+			      SystemDefs.JavabaseBM.freePage(pageno);
+			    }
+			    catch (Exception e) {
+			      throw new HFBufMgrException(e,"Heapfile.java: freePage() failed");
+			    }
 
-					  } // end of freePage
+			  } // end of freePage
 
-					  private PageId newPage(Page page, int num)
-					    throws HFBufMgrException {
+			  private PageId newPage(Page page, int num)
+			    throws HFBufMgrException {
 
-					    PageId tmpId = new PageId();
+			    PageId tmpId = new PageId();
 
-					    try {
-					      tmpId = SystemDefs.JavabaseBM.newPage(page,num);
-					    }
-					    catch (Exception e) {
-					      throw new HFBufMgrException(e,"Heapfile.java: newPage() failed");
-					    }
+			    try {
+			      tmpId = SystemDefs.JavabaseBM.newPage(page,num);
+			    }
+			    catch (Exception e) {
+			      throw new HFBufMgrException(e,"Heapfile.java: newPage() failed");
+			    }
 
-					    return tmpId;
+			    return tmpId;
 
-					  } // end of newPage
+			  } // end of newPage
 
-					  private PageId get_file_entry(String filename)
-					    throws HFDiskMgrException {
+			  private PageId get_file_entry(String filename)
+			    throws HFDiskMgrException {
 
-					    PageId tmpId = new PageId();
+			    PageId tmpId = new PageId();
 
-					    try {
-					      tmpId = SystemDefs.JavabaseDB.get_file_entry(filename);
-					    }
-					    catch (Exception e) {
-					      throw new HFDiskMgrException(e,"Heapfile.java: get_file_entry() failed");
-					    }
+			    try {
+			      tmpId = SystemDefs.JavabaseDB.get_file_entry(filename);
+			    }
+			    catch (Exception e) {
+			      throw new HFDiskMgrException(e,"Heapfile.java: get_file_entry() failed");
+			    }
 
-					    return tmpId;
+			    return tmpId;
 
-					  } // end of get_file_entry
+			  } // end of get_file_entry
 
-					  private void add_file_entry(String filename, PageId pageno)
-					    throws HFDiskMgrException {
+			  private void add_file_entry(String filename, PageId pageno)
+			    throws HFDiskMgrException {
 
-					    try {
-					      SystemDefs.JavabaseDB.add_file_entry(filename,pageno);
-					    }
-					    catch (Exception e) {
-					      throw new HFDiskMgrException(e,"Heapfile.java: add_file_entry() failed");
-					    }
+			    try {
+			      SystemDefs.JavabaseDB.add_file_entry(filename,pageno);
+			    }
+			    catch (Exception e) {
+			      throw new HFDiskMgrException(e,"Heapfile.java: add_file_entry() failed");
+			    }
 
-					  } // end of add_file_entry
+			  } // end of add_file_entry
 
-					  private void delete_file_entry(String filename)
-					    throws HFDiskMgrException {
+			  private void delete_file_entry(String filename)
+			    throws HFDiskMgrException {
 
-					    try {
-					      SystemDefs.JavabaseDB.delete_file_entry(filename);
-					    }
-					    catch (Exception e) {
-					      throw new HFDiskMgrException(e,"Heapfile.java: delete_file_entry() failed");
-					    }
+			    try {
+			      SystemDefs.JavabaseDB.delete_file_entry(filename);
+			    }
+			    catch (Exception e) {
+			      throw new HFDiskMgrException(e,"Heapfile.java: delete_file_entry() failed");
+			    }
 
-					  } // end of delete_file_entry
+			  } // end of delete_file_entry
 
 
-
-}
+			  
+			}// End of edge heap file 		  

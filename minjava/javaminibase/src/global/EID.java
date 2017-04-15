@@ -1,24 +1,22 @@
 package global;
 
-public class NID extends RID {
+public class EID extends RID {
 	
-	
-	
-	public NID()
+	public EID()
 	{
 		super();
 	}
 	
-	public NID (PageId pageno, int slotno)
+	public EID (PageId pageno, int slotno)
     {
       this.pageNo = pageno;
       this.slotNo = slotno;
     }
 	
-	 public void copyNid (NID nid)
+	 public void copyEid (EID eid)
 	    {
-	      pageNo = nid.pageNo;
-	      slotNo = nid.slotNo;
+	      pageNo = eid.pageNo;
+	      slotNo = eid.slotNo;
 	    }
 	 
 	 
@@ -35,14 +33,13 @@ public class NID extends RID {
 			   * @return true is they are equal
 			   *         false if not.
 			   */
-			  public boolean equals(NID nid) {
+			  public boolean equals(EID eid) {
 			    
-			    if ((this.pageNo.pid==nid.pageNo.pid)
-				&&(this.slotNo==nid.slotNo))
+			    if ((this.pageNo.pid==eid.pageNo.pid)
+				&&(this.slotNo==eid.slotNo))
 			      return true;
 			    else
 			      return false;
 			  }
-	 
 
 }

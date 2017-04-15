@@ -315,10 +315,10 @@ public class NHFPage extends Page implements ConstSlot, GlobalConst{
 	   * @exception IOException I/O errors
 	   * in C++ Status insertRecord(char *recPtr, int recLen, RID& rid)
 	   */
-	  public RID insertNode ( byte [] record)		
+	  public NID insertNode ( byte [] record)		
 	    throws IOException
 	    {
-	      RID rid = new NID();
+	      NID nid = new NID();
 	      
 	      int recLen = record.length;
 	      int spaceNeeded = recLen + SIZE_OF_SLOT;
@@ -370,9 +370,9 @@ public class NHFPage extends Page implements ConstSlot, GlobalConst{
 		// insert data onto the data page
 		System.arraycopy (record, 0, data, usedPtr, recLen);
 		curPage.pid = Convert.getIntValue (CUR_PAGE, data);
-		rid.pageNo.pid = curPage.pid;
-		rid.slotNo = i;
-		return   rid ;
+		nid.pageNo.pid = curPage.pid;
+		nid.slotNo = i;
+		return   nid ;
 	      }
 	    } 
 	
