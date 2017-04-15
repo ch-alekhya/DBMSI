@@ -11,7 +11,7 @@ import java.text.DecimalFormat;
 
 public class Descriptor {
 	
-	int value[];
+	public int value[];
 	
 	Descriptor()
 	{

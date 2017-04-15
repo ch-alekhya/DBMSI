@@ -14,7 +14,7 @@ import diskmgr.*;
   * Define constant values for INVALID_SLOT and EMPTY_SLOT
   */
 
-interface ConstSlot{
+ interface ConstSlot{
   int INVALID_SLOT =  -1;
   int EMPTY_SLOT = -1;
 }

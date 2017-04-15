@@ -580,5 +580,81 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
    {
       return 0;
    }
+  
+  public String stringRep(AttrType type[]) throws IOException {
+      int i, val;
+      float fval;
+      String sval;
+      Descriptor dval;
+
+      String output = "Label : ";
+      for (i = 0; i < fldCnt - 1; i++) {
+          switch (type[i].attrType) {
+
+              case AttrType.attrInteger:
+                  val = Convert.getIntValue(fldOffset[i], data);
+                  output += val;
+                  break;
+
+              case AttrType.attrReal:
+                  fval = Convert.getFloValue(fldOffset[i], data);
+                  output += fval;
+                  break;
+
+              case AttrType.attrString:
+                  sval = Convert.getStrValue(fldOffset[i], data, fldOffset[i + 1] - fldOffset[i]);
+                  output += sval;
+                  break;
+              case AttrType.attrDesc:
+                  dval = Convert.getDescValue(fldOffset[i], data);
+                  String str = " :: Descriptor [ ";
+                  for(int j=0; j<5; j++)
+                      str += dval.value[j] + " ,";
+
+                  str = str.substring(0,str.length()-1) + " ]";
+                  output += str;
+                  break;
+
+              case AttrType.attrNull:
+              case AttrType.attrSymbol:
+                  break;
+          }
+          System.out.print(", ");
+      }
+
+      switch (type[fldCnt - 1].attrType) {
+
+          case AttrType.attrInteger:
+              val = Convert.getIntValue(fldOffset[i], data);
+              output += val;
+              break;
+
+          case AttrType.attrReal:
+              fval = Convert.getFloValue(fldOffset[i], data);
+              output += fval;
+              break;
+
+          case AttrType.attrString:
+              sval = Convert.getStrValue(fldOffset[i], data, fldOffset[i + 1] - fldOffset[i]);
+              output += sval;
+              break;
+
+          case AttrType.attrDesc:
+              dval = Convert.getDescValue(fldOffset[i], data);
+              String str = " :: Descriptor [ ";
+              for(int j=0; j<5; j++)
+                  str += dval.value[j] + " ,";
+
+              str = str.substring(0,str.length()-1) + " ]";
+              output += str;
+              break;
+
+          case AttrType.attrNull:
+          case AttrType.attrSymbol:
+              break;
+      }
+      output+= "]";
+		return output;
+  }
 }
 
