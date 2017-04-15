@@ -211,6 +211,13 @@ public class Sort extends Iterator implements GlobalConst
       if (cur_node == null) break; 
       p_elems_curr_Q --;
       
+      if(sortFldType.equals(AttrType.attrDesc))
+      {
+    	  Descriptor target=new Descriptor();
+    	  target.setValue(1, 1, 1, 1, 1);
+    	  comp_res=ExtendTupleUtilis.CompareTupleWithValue(sortFldType, cur_node.tuple, _sort_fld, lastElem, 1, target);
+      }
+      
       comp_res = TupleUtils.CompareTupleWithValue(sortFldType, cur_node.tuple, _sort_fld, lastElem);  // need tuple_utils.java
       
       if ((comp_res < 0 && order.tupleOrder == TupleOrder.Ascending) || (comp_res > 0 && order.tupleOrder == TupleOrder.Descending)) {
@@ -476,6 +483,8 @@ public class Sort extends Iterator implements GlobalConst
     char[] c = new char[1];
     c[0] = Character.MIN_VALUE; 
     String s = new String(c);
+    Descriptor des =new Descriptor();
+    des.setValue(1,1,1,1,1) ;
     //    short fld_no = 1;
     
     switch (sortFldType.attrType) {
@@ -491,6 +500,10 @@ public class Sort extends Iterator implements GlobalConst
       //      lastElem.setHdr(fld_no, junk, s_size);
       lastElem.setStrFld(_sort_fld, s);
       break;
+      
+    case AttrType.attrDesc:
+    	lastElem.setDescFld(_sort_fld, des);
+    	break;
     default:
       // don't know how to handle attrSymbol, attrNull
       //System.err.println("error in sort.java");
@@ -518,6 +531,8 @@ public class Sort extends Iterator implements GlobalConst
     char[] c = new char[1];
     c[0] = Character.MAX_VALUE; 
     String s = new String(c);
+    Descriptor des =new Descriptor();
+    des.setValue(1,1,1,1,1) ;
     //    short fld_no = 1;
     
     switch (sortFldType.attrType) {
@@ -533,6 +548,9 @@ public class Sort extends Iterator implements GlobalConst
       //      lastElem.setHdr(fld_no, junk, s_size);
       lastElem.setStrFld(_sort_fld, s);
       break;
+    case AttrType.attrDesc:
+    	lastElem.setDescFld(_sort_fld, des);
+    	break;
     default:
       // don't know how to handle attrSymbol, attrNull
       //System.err.println("error in sort.java");

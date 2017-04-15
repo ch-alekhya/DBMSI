@@ -13,7 +13,7 @@ public class Descriptor {
 	
 	public int value[];
 	
-	Descriptor()
+	public Descriptor()
 	{
 		value=new int[5];
 		value[0]=0;
